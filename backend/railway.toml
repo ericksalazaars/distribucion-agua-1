@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+
+[nixpacks]
+language = "node"
+
+[deploy]
+start = "node server.js"

@@ -1,0 +1,246 @@
+/* ===============================
+   RESET
+================================= */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 0;
+  background: #f4f6fa;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* ===============================
+   HEADER / MENÚ SUPERIOR
+================================= */
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  padding: 14px 18px;
+  border-bottom: 1px solid #dfe3ea;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0062d6;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 14px;
+}
+
+.nav-link {
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #444;
+  transition: 0.2s;
+  font-weight: 500;
+}
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-link:hover {
+  background: #e9f2ff;
+  color: #0062d6;
+}
+
+.nav-link.active {
+  background: #d6e6ff;
+  color: #0062d6;
+  font-weight: 600;
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .nav-menu {
+    overflow-x: auto;
+    gap: 8px;
+  }
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
+/* ===============================
+   PÁGINAS
+================================= */
+.page-content {
+  padding: 20px;
+}
+
+
+/* ===============================
+   TITULOS
+================================= */
+h1, h2, h3 {
+  margin: 10px 0 15px;
+  font-weight: 700;
+  color: #222;
+}
+
+/* ===============================
+   FORMULARIOS
+================================= */
+
+form {
+  background: #fff;
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #444;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #ccd3dd;
+  outline: none;
+  font-size: 15px;
+  margin-bottom: 12px;
+  background: #fafbff;
+  transition: border 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: #0062d6;
+}
+
+textarea {
+  min-height: 100px;
+}
+
+/* ===============================
+   BOTONES
+================================= */
+
+button, .btn {
+  padding: 10px 14px;
+  background: #0062d6;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover, .btn:hover {
+  background: #004bb3;
+}
+
+.btn-danger {
+  background: #e03131;
+}
+
+.btn-danger:hover {
+  background: #c92424;
+}
+
+.btn-secondary {
+  background: #7e8894;
+}
+
+.btn-secondary:hover {
+  background: #5e6771;
+}
+
+/* ===============================
+   TARJETAS / CARDS
+================================= */
+.card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 16px;
+}
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* separa cada tarjeta */
+  margin-top: 10px;
+}
+.card-buttons {
+  display: flex;
+  gap: 10px; /* separación entre botones */
+  margin-top: 12px;
+}
+
+button,
+.btn {
+  min-width: 110px;
+  text-align: center;
+}
+.list-card h3,
+.list-card h4 {
+  margin: 0 0 8px;
+  color: #222;
+}
+
+.list-card p {
+  margin: 4px 0;
+  color: #444;
+}
+.deliveries-group {
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #dfe3ea;
+}
+
+
+.list-card {
+  background: #fff;
+  padding: 16px 18px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #e4e7ee;
+}
+
+
+/* ===============================
+   TABLAS
+================================= */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  margin-top: 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th, td {
+  padding: 12px 10px;
+  border-bottom: 1px solid #e3e7ee;
+  text-align: left;
+}
+
+th {
+  background: #f2f5fc;
+  font-weight: 700;
+}
+
+tr:hover td {
+  background: #f9fbff;
+}
