@@ -1,0 +1,13 @@
+/* RESET GENERAL */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* TIPOGRAFÍA GLOBAL */
+body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f4f6fa;
+    color: #2c3e50;
+}
