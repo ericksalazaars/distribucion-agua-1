@@ -1,44 +1,45 @@
+// backend/routes/clients.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// Obtener todos los clientes
-router.get("/", (req, res) => {
-  db.all("SELECT * FROM clients", [], (err, rows) => {
-    if (err) {
-      console.error("ERROR /api/clients:", err);
-      return res.status(500).json({ error: "Error al obtener clientes" });
-    }
+// GET /api/clients
+router.get("/", async (req, res) => {
+  try {
+    const { rows } = await db.query("SELECT * FROM clients ORDER BY id DESC");
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("ERROR GET /clients:", err);
+    res.status(500).json({ error: "Error obteniendo clientes" });
+  }
 });
 
-// Crear cliente
-router.post("/", (req, res) => {
-  const { name, phone, address, price_fardo, price_botellon, price_botellon_nuevo } = req.body;
-
-  db.run(
-    `INSERT INTO clients (name, phone, address, price_fardo, price_botellon, price_botellon_nuevo)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [name, phone, address, price_fardo, price_botellon, price_botellon_nuevo],
-    function (err) {
-      if (err) {
-        console.error("ERROR creando cliente:", err);
-        return res.status(500).json({ error: "No se pudo crear el cliente" });
-      }
-      res.json({ id: this.lastID });
-    }
-  );
+// POST /api/clients
+router.post("/", async (req, res) => {
+  try {
+    const { name, phone, address, price_fardo, price_botellon, price_botellon_nuevo } = req.body;
+    const q = `
+      INSERT INTO clients (name, phone, address, price_fardo, price_botellon, price_botellon_nuevo)
+      VALUES ($1,$2,$3,$4,$5,$6) RETURNING *
+    `;
+    const { rows } = await db.query(q, [name, phone, address, price_fardo, price_botellon, price_botellon_nuevo]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error("ERROR POST /clients:", err);
+    res.status(500).json({ error: "Error creando cliente" });
+  }
 });
 
-// Eliminar cliente
-router.delete("/:id", (req, res) => {
-  db.run("DELETE FROM clients WHERE id = ?", [req.params.id], function (err) {
-    if (err) {
-      return res.status(500).json({ error: "Error al eliminar cliente" });
-    }
+// DELETE /api/clients/:id
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query("DELETE FROM clients WHERE id = $1", [id]);
     res.json({ success: true });
-  });
+  } catch (err) {
+    console.error("ERROR DELETE /clients:", err);
+    res.status(500).json({ error: "Error eliminando cliente" });
+  }
 });
 
 module.exports = router;

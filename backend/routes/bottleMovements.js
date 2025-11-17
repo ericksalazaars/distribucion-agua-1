@@ -1,52 +1,49 @@
+// backend/routes/bottleMovements.js
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// Obtener todos los movimientos de botellones
-router.get("/", (req, res) => {
-  const sql = `
-    SELECT 
-      bm.*,
-      c.name AS clientName
-    FROM bottle_movements bm
-    LEFT JOIN clients c ON c.id = bm.clientId
-    ORDER BY bm.id DESC
-  `;
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error("❌ ERROR obteniendo movimientos:", err);
-      return res.status(500).json({ error: "Error al obtener movimientos" });
-    }
-
+// GET /api/bottle-movements
+router.get("/", async (req, res) => {
+  try {
+    const sql = `
+      SELECT bm.*, c.name AS clientname
+      FROM bottle_movements bm
+      LEFT JOIN clients c ON c.id = bm.clientid
+      ORDER BY bm.id DESC
+    `;
+    const { rows } = await db.query(sql);
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("ERROR GET /bottle-movements:", err);
+    res.status(500).json({ error: "Error al obtener movimientos" });
+  }
 });
 
-// Obtener resumen por cliente (saldo actual)
-router.get("/resumen", (req, res) => {
-  const sql = `
-    SELECT 
-      c.id AS clientId,
-      c.name AS clientName,
-      COALESCE(SUM(CASE WHEN bm.tipo = 'entregado' THEN bm.cantidad ELSE 0 END), 0) AS entregados,
-      COALESCE(SUM(CASE WHEN bm.tipo = 'recolectado' THEN bm.cantidad ELSE 0 END), 0) AS recolectados,
-      (COALESCE(SUM(CASE WHEN bm.tipo = 'recolectado' THEN bm.cantidad ELSE 0 END), 0) -
-       COALESCE(SUM(CASE WHEN bm.tipo = 'entregado' THEN bm.cantidad ELSE 0 END), 0)) AS saldo
-    FROM clients c
-    LEFT JOIN bottle_movements bm ON bm.clientId = c.id
-    GROUP BY c.id
-    ORDER BY c.name ASC
-  `;
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error("❌ ERROR en resumen:", err);
-      return res.status(500).json({ error: "Error al generar resumen" });
-    }
-
+// GET /api/bottle-movements/resumen
+router.get("/resumen", async (req, res) => {
+  try {
+    const sql = `
+      SELECT
+        c.id AS clientid,
+        c.name AS clientname,
+        COALESCE(SUM(CASE WHEN bm.tipo='entregado' THEN bm.cantidad END),0) AS entregados,
+        COALESCE(SUM(CASE WHEN bm.tipo='recolectado' THEN bm.cantidad END),0) AS recolectados,
+        COALESCE(
+          SUM(CASE WHEN bm.tipo='recolectado' THEN bm.cantidad END) -
+          SUM(CASE WHEN bm.tipo='entregado' THEN bm.cantidad END),0
+        ) AS saldo
+      FROM clients c
+      LEFT JOIN bottle_movements bm ON bm.clientid = c.id
+      GROUP BY c.id
+      ORDER BY c.name ASC
+    `;
+    const { rows } = await db.query(sql);
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("ERROR resumen bottle-movements:", err);
+    res.status(500).json({ error: "Error en resumen" });
+  }
 });
 
 module.exports = router;

@@ -12,7 +12,7 @@ export default function Bottles() {
   const loadData = async () => {
     try {
       const [clientsRes, movRes] = await Promise.all([
-        axios.get("http://localhost:4000/api/clients"),
+       axios.get("http://localhost:4000/api/clients"),
         axios.get("http://localhost:4000/api/bottle-movements"),
       ]);
 
