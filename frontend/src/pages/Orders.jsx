@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FiCheckCircle, FiTrash2 } from "react-icons/fi";
-import { API } from "../api"; // ← IMPORT CORRECTO
+import { api } from "../api"; // ← IMPORT CORRECTO
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
