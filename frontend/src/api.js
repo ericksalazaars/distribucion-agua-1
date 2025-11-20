@@ -1,30 +1,11 @@
-// src/api.js
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+export const API = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000",
 });
 
-
-
-// ---------------- CLIENTES ----------------
-export const getClients = () => api.get("/api/clients");
-export const addClient = (data) => api.post("/api/clients", data);
-
-// ---------------- PEDIDOS ----------------
-export const getOrders = () => api.get("/api/orders");
-export const addOrder = (data) => api.post("/api/orders", data);
-export const updateOrder = (id, data) => api.put(`/api/orders/${id}`, data);
-
-// ---------------- ENTREGAS (usa orders) ----------------
-
-// ---------------- BOTELLONES ----------------
-export const getBottleMovements = () => api.get("/api/bottle-movements");
-
-// ---------------- FARDOS ----------------
-export const getFardos = () => api.get("/api/fardos");
-
-// ---------------- INGRESOS ----------------
-export const getIncome = () => api.get("/api/income");
-
-export default api;
+// Helpers (GET, POST, PUT, DELETE)
+export const get = (url) => API.get(url);
+export const post = (url, data) => API.post(url, data);
+export const put = (url, data) => API.put(url, data);
+export const del = (url) => API.delete(url);
