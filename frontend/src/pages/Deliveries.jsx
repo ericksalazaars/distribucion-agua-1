@@ -6,140 +6,114 @@ const api = axios.create({
 });
 
 export default function Deliveries() {
-  const [orders, setOrders] = useState([]);
+  const [pending, setPending] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [form, setForm] = useState({
+    entregados_llenos: "",
+    botellones_recolectados: "",
+  });
+
+  function load() {
+    api
+      .get("/api/orders/pending")
+      .then((res) => setPending(res.data || []))
+      .catch((err) => console.error("Error cargando pendientes:", err));
+  }
 
   useEffect(() => {
-    loadOrders();
+    load();
   }, []);
 
-  function loadOrders() {
-    api
-      .get("/api/orders")
-      .then((res) => setOrders(res.data))
-      .catch((err) => console.error("ERROR cargando pedidos:", err));
+  function openDelivery(order) {
+    setSelected(order);
+    setForm({ entregados_llenos: "", botellones_recolectados: "" });
   }
 
-  // Esta es la función correcta para entregar
-  function updateDelivery(order, recolectados, entregadosLlenos) {
+  function submitDelivery() {
+    if (!selected) return;
+
     api
-      .put(`/api/orders/${order.id}/entregar`, {
-        botellones_recolectados: Number(recolectados) || 0,
-        entregados_llenos: Number(entregadosLlenos) || 0,
+      .put(`/api/orders/${selected.id}/entregar`, {
+        entregados_llenos: Number(form.entregados_llenos) || 0,
+        botellones_recolectados: Number(form.botellones_recolectados) || 0,
       })
       .then(() => {
-        loadOrders();
+        setSelected(null);
+        load();
       })
-      .catch((err) => {
-        console.error("ERROR al entregar:", err);
-      });
+      .catch((err) => console.error("Error guardando entrega:", err));
   }
 
-  const pendientes = orders.filter((o) => o.estado === "pendiente");
-  const entregados = orders.filter((o) => o.estado === "entregado");
-
   return (
-    <div className="page">
-      <h2>Entregas</h2>
+    <div>
+      <h2>Entregas pendientes</h2>
 
-      <div className="card">
-        <h3>Pendientes de entrega</h3>
+      {pending.length === 0 && (
+        <div className="muted">No hay pedidos pendientes...</div>
+      )}
 
-        {pendientes.length === 0 && (
-          <div className="muted">No hay pedidos pendientes.</div>
-        )}
-
-        <div className="list">
-          {pendientes.map((order) => (
-            <PendingOrder
-              key={order.id}
-              order={order}
-              onDeliver={updateDelivery}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="card">
-        <h3>Últimas entregas</h3>
-
-        {entregados.length === 0 && (
-          <div className="muted">No hay entregas recientes.</div>
-        )}
-
-        <div className="list">
-          {entregados.map((o) => (
-            <div key={o.id} className="list-item">
+      <div className="list-container">
+        {pending.map((order) => (
+          <div className="list-card" key={order.id}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
               <div>
-                <strong>{o.clientName}</strong>
-                <div className="muted">Fardos: {o.fardos}</div>
+                <strong>{order.clientName || "Cliente sin nombre"}</strong>
+                <div className="muted">{order.date}</div>
+                <div className="muted">Fardos: {order.fardos}</div>
                 <div className="muted">
-                  Botellones recolectados: {o.botellones_recolectados}
-                </div>
-                <div className="muted">
-                  Entregados (llenos): {o.entregados_llenos}
+                  Botellones solicitados: {order.botellones_solicitados}
                 </div>
               </div>
+
+              <button
+                className="btn btn-primary"
+                onClick={() => openDelivery(order)}
+              >
+                Entregar
+              </button>
             </div>
-          ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Modal entrega */}
+      {selected && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <h3>Registrar entrega</h3>
+
+            <label>Botellones entregados llenos</label>
+            <input
+              type="number"
+              value={form.entregados_llenos}
+              onChange={(e) =>
+                setForm({ ...form, entregados_llenos: e.target.value })
+              }
+            />
+
+            <label>Botellones recolectados vacíos</label>
+            <input
+              type="number"
+              value={form.botellones_recolectados}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  botellones_recolectados: e.target.value,
+                })
+              }
+            />
+
+            <div className="modal-actions">
+              <button className="btn btn-primary" onClick={submitDelivery}>
+                Guardar
+              </button>
+              <button className="btn btn-secondary" onClick={() => setSelected(null)}>
+                Cancelar
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function PendingOrder({ order, onDeliver }) {
-  const [recolectados, setRecolectados] = useState("");
-  const [entregadosLlenos, setEntregadosLlenos] = useState("");
-
-  return (
-    <div className="list-item">
-      <div>
-        <strong>{order.clientName}</strong>
-        <div className="muted">
-          {order.date} — Fardos: {order.fardos}{" "}
-          {order.botellones_solicitados
-            ? `— Botellones solicitados: ${order.botellones_solicitados}`
-            : ""}
-        </div>
-      </div>
-
-      <div className="list-actions">
-        <input
-          type="number"
-          placeholder="Bot. vacíos"
-          value={recolectados}
-          onChange={(e) => setRecolectados(e.target.value)}
-          style={{
-            width: "120px",
-            padding: "6px",
-            borderRadius: "8px",
-            border: "1px solid #ddd",
-          }}
-        />
-
-        <input
-          type="number"
-          placeholder="Llenos entregados"
-          value={entregadosLlenos}
-          onChange={(e) => setEntregadosLlenos(e.target.value)}
-          style={{
-            width: "140px",
-            padding: "6px",
-            borderRadius: "8px",
-            border: "1px solid #ddd",
-            marginLeft: "8px",
-          }}
-        />
-
-        <button
-          className="btn-primary"
-          onClick={() =>
-            onDeliver(order, recolectados, entregadosLlenos)
-          }
-        >
-          Entregar
-        </button>
-      </div>
+      )}
     </div>
   );
 }

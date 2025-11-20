@@ -1,93 +1,78 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000",
+});
+
 export default function Bottles() {
-  const [clients, setClients] = useState([]);
-  const [movements, setMovements] = useState([]);
+  const [movs, setMovs] = useState([]);
+  const [totals, setTotals] = useState({
+    today: 0,
+    week: 0,
+    month: 0,
+    total: 0,
+  });
+
+  function load() {
+    api
+      .get("/api/bottle-movements")
+      .then((res) => {
+        setMovs(res.data.movements || []);
+        setTotals(res.data.totals || {});
+      })
+      .catch((err) => console.error("Error cargando botellones:", err));
+  }
 
   useEffect(() => {
-    loadData();
+    load();
   }, []);
 
-  const loadData = async () => {
-    try {
-      const [clientsRes, movRes] = await Promise.all([
-       axios.get("http://localhost:4000/api/clients"),
-        axios.get("http://localhost:4000/api/bottle-movements"),
-      ]);
-
-      setClients(clientsRes.data);
-      setMovements(movRes.data);
-    } catch (err) {
-      console.error("ERROR cargando botellones:", err);
-    }
-  };
-
-  // Calcular saldo por cliente
-  const getClientSummary = (clientId) => {
-    const clientMovs = movements.filter((m) => m.clientId === clientId);
-
-    const entregados = clientMovs
-      .filter((m) => m.tipo === "entregado")
-      .reduce((sum, m) => sum + m.cantidad, 0);
-
-    const recolectados = clientMovs
-      .filter((m) => m.tipo === "recolectado")
-      .reduce((sum, m) => sum + m.cantidad, 0);
-
-    return {
-      entregados,
-      recolectados,
-      saldo: recolectados - entregados,
-    };
-  };
-
   return (
-    <div className="page-container">
-      <h2 className="title">Botellones</h2>
+    <div>
+      <h2>Botellones</h2>
 
-      {/* ==== SALDO POR CLIENTE ==== */}
-      <h3 className="section-title">Saldo por cliente</h3>
+      {/* Totales */}
+      <div className="stats-grid">
+        <div className="stat-card">
+          <h4>Recolectados hoy</h4>
+          <p className="stat-number">{totals.today || 0}</p>
+        </div>
 
-      {clients.map((c) => {
-        const s = getClientSummary(c.id);
+        <div className="stat-card">
+          <h4>Entregados hoy</h4>
+          <p className="stat-number">{totals.sentToday || 0}</p>
+        </div>
 
-        return (
-          <div key={c.id} className="card">
-            <div className="client-name">{c.name}</div>
-            <p><strong>Entregados:</strong> {s.entregados}</p>
-            <p><strong>Recolectados:</strong> {s.recolectados}</p>
-            <p><strong>Saldo actual:</strong> {s.saldo}</p>
-          </div>
-        );
-      })}
+        <div className="stat-card">
+          <h4>Balance del día</h4>
+          <p className="stat-number">{(totals.today || 0) - (totals.sentToday || 0)}</p>
+        </div>
+      </div>
 
-      {/* ==== MOVIMIENTOS ==== */}
-      <h3 className="section-title">Movimientos recientes</h3>
+      <h3 style={{ marginTop: 25 }}>Movimientos recientes</h3>
 
-      {movements.length === 0 && <p>No hay movimientos aún.</p>}
+      {movs.length === 0 && <p className="muted">No hay movimientos todavía.</p>}
 
-      {movements.map((m) => (
-        <div key={m.id} className="movement-card">
-          <div className="movement-header">
-            <span className="client-name">{m.clientName || "Cliente eliminado"}</span>
-            <span className="movement-date">{m.fecha}</span>
-          </div>
+      <div className="list-container">
+        {movs.map((m) => (
+          <div className="list-card" key={m.id}>
+            <strong>{m.clientName || "Cliente eliminado"}</strong>
+            <div className="muted">{m.fecha} — {m.origen}</div>
 
-          <div className="movement-body">
-            <span
-              className={
-                "movement-number " +
-                (m.tipo === "recolectado" ? "positivo" : "negativo")
-              }>
+            <p
+              style={{
+                fontSize: 20,
+                marginTop: 5,
+                color: m.tipo === "recolectado" ? "green" : "red",
+              }}
+            >
               {m.tipo === "recolectado" ? "+" : "-"}
               {m.cantidad}
-            </span>
-
-            <span className="movement-origin">({m.origen})</span>
+            </p>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,12 +1,11 @@
 // src/api.js
 import axios from "axios";
 
-const API_URL = "https://distribucion-agua-1-production.up.railway.app";
-
 const api = axios.create({
-    baseURL: API_URL,
-    timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL,
 });
+
+
 
 // ---------------- CLIENTES ----------------
 export const getClients = () => api.get("/api/clients");
