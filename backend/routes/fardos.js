@@ -2,24 +2,19 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// Obtener inventario de fardos vendidos agrupado por día
 router.get("/", (req, res) => {
-  const sql = `
-    SELECT date AS fecha, SUM(fardos) AS total_fardos
-    FROM orders
-    WHERE estado = 'entregado'
-    GROUP BY date
-    ORDER BY date DESC
-  `;
-
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error("ERROR /api/fardos:", err);
-      return res.status(500).json({ error: "Error obteniendo datos de fardos" });
-    }
+  try {
+    const rows = db.prepare(`
+      SELECT date, SUM(fardos) AS total_fardos
+      FROM orders
+      GROUP BY date
+      ORDER BY date DESC
+    `).all();
 
     res.json(rows);
-  });
+  } catch (err) {
+    res.status(500).json({ error: "Error obteniendo fardos" });
+  }
 });
 
 module.exports = router;

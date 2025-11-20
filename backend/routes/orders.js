@@ -2,93 +2,84 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// ==========================================
-// GET — Obtener todos los pedidos
-// ==========================================
+// Obtener órdenes
 router.get("/", (req, res) => {
-  const sql = `
-    SELECT o.*, c.name AS clientName
-    FROM orders o
-    LEFT JOIN clients c ON o.clientId = c.id
-    ORDER BY o.id DESC
-  `;
+  try {
+    const orders = db.prepare(`
+      SELECT orders.*, clients.name AS clientName
+      FROM orders
+      LEFT JOIN clients ON clients.id = orders.clientId
+      ORDER BY id DESC
+    `).all();
 
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error("Error obteniendo pedidos:", err);
-      return res.status(500).json({ error: "Error obteniendo pedidos" });
-    }
-    res.json(rows);
-  });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: "Error obteniendo pedidos" });
+  }
 });
 
-// ==========================================
-// POST — Crear un pedido
-// ==========================================
+// Crear orden
 router.post("/", (req, res) => {
   const { clientId, date, fardos, botellones_solicitados, notas } = req.body;
 
-  const sql = `
-    INSERT INTO orders (clientId, date, fardos, botellones_solicitados, estado, notas)
-    VALUES (?, ?, ?, ?, 'pendiente', ?)
-  `;
+  try {
+    const stmt = db.prepare(`
+      INSERT INTO orders (clientId, date, fardos, botellones_solicitados, notas)
+      VALUES (?, ?, ?, ?, ?)
+    `);
 
-  db.run(sql, [clientId, date, fardos, botellones_solicitados, notas], function (err) {
-    if (err) {
-      console.error("Error creando pedido:", err);
-      return res.status(500).json({ error: "Error creando pedido" });
-    }
-    res.json({ id: this.lastID });
-  });
+    const result = stmt.run(clientId, date, fardos, botellones_solicitados, notas);
+    res.json({ id: result.lastInsertRowid });
+  } catch (err) {
+    res.status(500).json({ error: "Error creando pedido" });
+  }
 });
 
-// ==========================================
-// PUT — Registrar entrega
-// ==========================================
+// Entregar pedido
 router.put("/:id/entregar", (req, res) => {
+  const { id } = req.params;
   const { entregados_llenos, botellones_recolectados } = req.body;
-  const orderId = req.params.id;
 
-  const updateSql = `
-    UPDATE orders
-    SET estado = 'entregado',
+  try {
+    db.prepare(`
+      UPDATE orders
+      SET estado = 'entregado',
         entregados_llenos = ?,
         botellones_recolectados = ?
-    WHERE id = ?
-  `;
+      WHERE id = ?
+    `).run(entregados_llenos, botellones_recolectados, id);
 
-  db.run(updateSql, [entregados_llenos, botellones_recolectados, orderId], function (err) {
-    if (err) {
-      console.error("Error actualizando pedido:", err);
-      return res.status(500).json({ error: "Error actualizando pedido" });
+    // Registrar movimientos
+    const order = db.prepare("SELECT clientId FROM orders WHERE id = ?").get(id);
+
+    if (entregados_llenos > 0) {
+      db.prepare(`
+        INSERT INTO bottle_movements (clientId, tipo, cantidad, fecha, origen)
+        VALUES (?, 'entregado', ?, date('now'), 'entrega')
+      `).run(order.clientId, entregados_llenos);
     }
 
-    // Registrar movimientos de botellones
-    const fechaMov = new Date().toISOString().split("T")[0];
+    if (botellones_recolectados > 0) {
+      db.prepare(`
+        INSERT INTO bottle_movements (clientId, tipo, cantidad, fecha, origen)
+        VALUES (?, 'recolectado', ?, date('now'), 'entrega')
+      `).run(order.clientId, botellones_recolectados);
+    }
 
-    const movSql = `
-      INSERT INTO bottle_movements (clientId, tipo, cantidad, fecha, origen)
-      VALUES (?, ?, ?, ?, 'entrega')
-    `;
-
-    db.run(movSql, [req.body.clientId, "entregado", entregados_llenos, fechaMov]);
-    db.run(movSql, [req.body.clientId, "recolectado", botellones_recolectados, fechaMov]);
-
-    res.json({ updated: true });
-  });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Error entregando pedido" });
+  }
 });
 
-// ==========================================
-// DELETE — Eliminar pedido
-// ==========================================
+// Borrar pedido
 router.delete("/:id", (req, res) => {
-  db.run("DELETE FROM orders WHERE id = ?", [req.params.id], function (err) {
-    if (err) {
-      console.error("Error eliminando pedido:", err);
-      return res.status(500).json({ error: "Error eliminando pedido" });
-    }
-    res.json({ deleted: true });
-  });
+  try {
+    db.prepare("DELETE FROM orders WHERE id = ?").run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Error eliminando pedido" });
+  }
 });
 
 module.exports = router;

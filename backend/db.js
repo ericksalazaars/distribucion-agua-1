@@ -1,33 +1,9 @@
-const sqlite3 = require("sqlite3").verbose();
-const { Pool } = require("pg");
+const Database = require("better-sqlite3");
 
-const isProduction = !!process.env.DATABASE_URL;
+// Railway → carpeta /app
+const db = new Database("./database.db", {
+  verbose: console.log
+});
 
-let db = null;
-let pgPool = null;
-
-if (isProduction) {
-  console.log("➡ Conectando a PostgreSQL (Railway)");
-
-  pgPool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  });
-
-} else {
-  console.log("➡ Usando SQLite local");
-
-  db = new sqlite3.Database(
-    "./database.db",
-    sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE,
-    (err) => {
-      if (err) {
-        console.error("❌ Error abriendo SQLite:", err.message);
-      } else {
-        console.log("SQLite conectado correctamente.");
-      }
-    }
-  );
-}
-
-module.exports = { db, pgPool, isProduction };
+console.log("SQLite (better-sqlite3) conectado correctamente.");
+module.exports = db;
