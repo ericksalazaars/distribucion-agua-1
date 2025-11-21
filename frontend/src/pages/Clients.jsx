@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { getClients, addClient } from "../api";
 
 export default function Clients() {
   const [clients, setClients] = useState([]);
@@ -8,111 +8,83 @@ export default function Clients() {
     phone: "",
     address: "",
     price_fardo: 0,
-    price_botellon: "",
-    price_botellon_nuevo: "",
+    price_botellon: 0,
+    price_botellon_nuevo: 0,
   });
 
-  const BASE_URL =
-    import.meta.env.VITE_API_URL || "http://localhost:4000/api";
-
-  // Cargar clientes
-  const fetchClients = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/clients`);
-      setClients(res.data);
-    } catch (error) {
-      console.error("Error cargando clientes:", error);
-    }
+  const load = () => {
+    getClients()
+      .then((res) => setClients(res.data))
+      .catch((err) => console.error("Error cargando clientes:", err));
   };
 
   useEffect(() => {
-    fetchClients();
+    load();
   }, []);
 
-  // Manejar cambios del formulario
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  // Guardar cliente
-  const handleSubmit = async (e) => {
+  const submit = (e) => {
     e.preventDefault();
-    try {
-      await axios.post(`${BASE_URL}/clients`, form);
-      fetchClients();
+    addClient(form).then(() => {
       setForm({
         name: "",
         phone: "",
         address: "",
         price_fardo: 0,
-        price_botellon: "",
-        price_botellon_nuevo: "",
+        price_botellon: 0,
+        price_botellon_nuevo: 0,
       });
-    } catch (error) {
-      console.error("Error guardando cliente:", error);
-    }
+      load();
+    });
   };
 
   return (
-    <div className="page">
+    <div>
       <h2>Clientes</h2>
 
-      <form onSubmit={handleSubmit} className="card">
-        <input
-          type="text"
-          name="name"
-          placeholder="Nombre"
+      <form onSubmit={submit} className="form-card">
+        <input placeholder="Nombre" required
           value={form.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          type="text"
-          name="phone"
-          placeholder="Teléfono"
-          value={form.phone}
-          onChange={handleChange}
-        />
-        <input
-          type="text"
-          name="address"
-          placeholder="Dirección"
-          value={form.address}
-          onChange={handleChange}
-        />
-        <input
-          type="number"
-          name="price_fardo"
-          placeholder="Precio fardo"
-          value={form.price_fardo}
-          onChange={handleChange}
-        />
-        <input
-          type="number"
-          name="price_botellon"
-          placeholder="Precio botellón"
-          value={form.price_botellon}
-          onChange={handleChange}
-        />
-        <input
-          type="number"
-          name="price_botellon_nuevo"
-          placeholder="Precio botellón nuevo"
-          value={form.price_botellon_nuevo}
-          onChange={handleChange}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
         />
 
-        <button type="submit">Guardar</button>
+        <input placeholder="Teléfono"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+        />
+
+        <input placeholder="Dirección"
+          value={form.address}
+          onChange={(e) => setForm({ ...form, address: e.target.value })}
+        />
+
+        <input type="number" placeholder="Precio fardo"
+          value={form.price_fardo}
+          onChange={(e) => setForm({ ...form, price_fardo: e.target.value })}
+        />
+
+        <input type="number" placeholder="Precio botellón"
+          value={form.price_botellon}
+          onChange={(e) => setForm({ ...form, price_botellon: e.target.value })}
+        />
+
+        <input type="number" placeholder="Precio botellón nuevo"
+          value={form.price_botellon_nuevo}
+          onChange={(e) =>
+            setForm({ ...form, price_botellon_nuevo: e.target.value })
+          }
+        />
+
+        <button className="btn-primary">Guardar</button>
       </form>
 
-      <h3>Lista de clientes</h3>
-      {clients.map((c) => (
-        <div key={c.id} className="card">
-          <strong>{c.name}</strong> — {c.phone}
-          <br />
-          {c.address}
-        </div>
-      ))}
+      <div className="list-container">
+        {clients.map((c) => (
+          <div className="list-card" key={c.id}>
+            <strong>{c.name}</strong>
+            <div className="muted">{c.phone}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { FiCheckCircle, FiTrash2 } from "react-icons/fi";
-import { api } from "../api"; // ← IMPORT CORRECTO
+import {
+  getOrders,
+  addOrder,
+  entregarPedido,
+  deleteOrder,
+  getClients,
+} from "../api";
 
 export default function Orders() {
   const [orders, setOrders] = useState([]);
@@ -21,34 +27,36 @@ export default function Orders() {
     botellones_recolectados: "",
   });
 
-  function loadOrders() {
+  // CARGAR CLIENTES Y PEDIDOS
+  const load = () => {
     setLoading(true);
-    API.get("/api/orders")
+    getOrders()
       .then((res) => {
         setOrders(res.data || []);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Error cargando pedidos:", err);
+        console.error("Error cargando pedidos", err);
         setLoading(false);
       });
-  }
+  };
 
-  function loadClients() {
-    API.get("/api/clients")
+  const loadClients = () => {
+    getClients()
       .then((res) => setClients(res.data || []))
-      .catch((err) => console.error("Error cargando clientes:", err));
-  }
+      .catch((err) => console.error("Error cargando clientes", err));
+  };
 
   useEffect(() => {
-    loadOrders();
+    load();
     loadClients();
   }, []);
 
-  function createOrder(e) {
+  // CREAR PEDIDO
+  const createOrder = (e) => {
     e.preventDefault();
 
-    API.post("/api/orders", {
+    addOrder({
       ...newOrder,
       fardos: Number(newOrder.fardos),
       botellones_solicitados: Number(newOrder.botellones_solicitados),
@@ -61,38 +69,37 @@ export default function Orders() {
           botellones_solicitados: "",
           notas: "",
         });
-        loadOrders();
+        load();
       })
-      .catch((err) => console.error("Error creando pedido:", err));
-  }
+      .catch((err) => console.error("Error creando pedido", err));
+  };
 
-  function openDelivery(order) {
+  // ABRIR MODAL ENTREGA
+  const openDelivery = (order) => {
     setSelected(order);
-    setForm({
-      entregados_llenos: "",
-      botellones_recolectados: "",
-    });
-  }
+    setForm({ entregados_llenos: "", botellones_recolectados: "" });
+  };
 
-  function submitDelivery() {
+  // GUARDAR ENTREGA
+  const submitDelivery = () => {
     if (!selected) return;
 
-    API.put(`/api/orders/${selected.id}/entregar`, {
+    entregarPedido(selected.id, {
       entregados_llenos: Number(form.entregados_llenos) || 0,
       botellones_recolectados: Number(form.botellones_recolectados) || 0,
     })
       .then(() => {
         setSelected(null);
-        loadOrders();
+        load();
       })
-      .catch((err) => console.error("Error guardando entrega:", err));
-  }
+      .catch((err) => console.error("Error entregando pedido", err));
+  };
 
   return (
     <div>
       <h2>Pedidos</h2>
 
-      {/* Crear pedido */}
+      {/* FORMULARIO DE NUEVO PEDIDO */}
       <div className="form-card">
         <h3>Crear nuevo pedido</h3>
 
@@ -159,6 +166,7 @@ export default function Orders() {
         </form>
       </div>
 
+      {/* LISTA DE PEDIDOS */}
       {loading && <div className="muted">Cargando...</div>}
 
       {!loading && orders.length === 0 && (
@@ -168,13 +176,18 @@ export default function Orders() {
       <div className="list-container" style={{ marginTop: 10 }}>
         {orders.map((order) => (
           <div className="list-card" key={order.id}>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
               <div>
                 <strong>{order.clientName || "Cliente sin nombre"}</strong>
                 <div className="muted">{order.date}</div>
                 <div className="muted">Fardos: {order.fardos}</div>
                 <div className="muted">
-                  Botellones: {order.botellones_solicitados}
+                  Botellones solicitados: {order.botellones_solicitados}
                 </div>
               </div>
 
@@ -193,9 +206,7 @@ export default function Orders() {
                 <button
                   className="btn btn-danger"
                   style={{ marginTop: 8 }}
-                  onClick={() =>
-                    API.delete(`/api/orders/${order.id}`).then(loadOrders)
-                  }
+                  onClick={() => deleteOrder(order.id).then(load)}
                 >
                   <FiTrash2 />
                 </button>
@@ -205,21 +216,25 @@ export default function Orders() {
         ))}
       </div>
 
+      {/* MODAL ENTREGA */}
       {selected && (
         <div className="modal-backdrop">
           <div className="modal">
             <h3>Registrar entrega</h3>
 
-            <label>Botellones entregados</label>
+            <label>Botellones entregados llenos</label>
             <input
               type="number"
               value={form.entregados_llenos}
               onChange={(e) =>
-                setForm({ ...form, entregados_llenos: e.target.value })
+                setForm({
+                  ...form,
+                  entregados_llenos: e.target.value,
+                })
               }
             />
 
-            <label>Botellones recolectados</label>
+            <label>Botellones recolectados vacíos</label>
             <input
               type="number"
               value={form.botellones_recolectados}
@@ -235,6 +250,7 @@ export default function Orders() {
               <button className="btn btn-primary" onClick={submitDelivery}>
                 Guardar
               </button>
+
               <button
                 className="btn btn-secondary"
                 onClick={() => setSelected(null)}

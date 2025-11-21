@@ -1,80 +1,117 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:4000",
-});
+import { getOrders } from "../api";
 
 export default function Income() {
-  const [totals, setTotals] = useState({
-    today: 0,
-    week: 0,
-    month: 0,
-    total: 0,
-  });
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const [recent, setRecent] = useState([]);
-
-  function load() {
-    api
-      .get("/api/income")
+  const load = () => {
+    setLoading(true);
+    getOrders()
       .then((res) => {
-        setTotals(res.data.totals || {});
-        setRecent(res.data.recent || []);
+        setOrders(res.data || []);
+        setLoading(false);
       })
-      .catch((err) => console.error("Error cargando ingresos:", err));
-  }
+      .catch((err) => {
+        console.error("Error cargando ingresos:", err);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
     load();
   }, []);
 
+  // Fecha actual
+  const today = new Date().toISOString().split("T")[0];
+
+  // Filtrar solo pedidos entregados
+  const delivered = orders.filter((o) => o.estado === "entregado");
+
+  // Calcular ingresos por pedido
+  const calculateTotal = (o) => {
+    const totalFardos = (o.fardos || 0) * (o.price_fardo || 0);
+    const totalBotellones =
+      (o.entregados_llenos || 0) * (o.price_botellon || 0);
+    const totalNuevos =
+      (o.botellones_solicitados || 0) * (o.price_botellon_nuevo || 0);
+
+    return totalFardos + totalBotellones + totalNuevos;
+  };
+
+  // Totales por periodo
+  const totalHoy = delivered
+    .filter((o) => o.date === today)
+    .reduce((sum, o) => sum + calculateTotal(o), 0);
+
+  const totalSemana = delivered.reduce((sum, o) => {
+    const fecha = new Date(o.date);
+    const hoy = new Date();
+    const diff = (hoy - fecha) / (1000 * 60 * 60 * 24);
+    return diff <= 7 ? sum + calculateTotal(o) : sum;
+  }, 0);
+
+  const totalMes = delivered.reduce((sum, o) => {
+    const fecha = new Date(o.date);
+    const hoy = new Date();
+    return (
+      fecha.getMonth() === hoy.getMonth() &&
+      fecha.getFullYear() === hoy.getFullYear()
+    )
+      ? sum + calculateTotal(o)
+      : sum;
+  }, 0);
+
   return (
     <div>
       <h2>Ingresos</h2>
 
-      {/* TARJETAS DE TOTALES */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h4>Hoy</h4>
-          <p className="stat-number">L {totals.today || 0}</p>
-        </div>
-
-        <div className="stat-card">
-          <h4>Esta semana</h4>
-          <p className="stat-number">L {totals.week || 0}</p>
-        </div>
-
-        <div className="stat-card">
-          <h4>Este mes</h4>
-          <p className="stat-number">L {totals.month || 0}</p>
-        </div>
-
-        <div className="stat-card">
-          <h4>Total</h4>
-          <p className="stat-number">L {totals.total || 0}</p>
-        </div>
+      <div className="card">
+        <h3>Resumen</h3>
+        <p><strong>Hoy:</strong> L {totalHoy}</p>
+        <p><strong>Esta semana:</strong> L {totalSemana}</p>
+        <p><strong>Este mes:</strong> L {totalMes}</p>
       </div>
 
-      <h3 style={{ marginTop: 30 }}>Movimientos recientes</h3>
+      <h3 style={{ marginTop: 20 }}>Historial</h3>
 
-      {recent.length === 0 && <p className="muted">Sin movimientos todavía.</p>}
+      {loading && <div className="muted">Cargando...</div>}
+      {!loading && delivered.length === 0 && (
+        <div className="muted">Sin ingresos aún.</div>
+      )}
 
       <div className="list-container">
-        {recent.map((r) => (
-          <div className="list-card" key={r.id}>
-            <strong>{r.clientName || "Cliente eliminado"}</strong>
-            <div className="muted">{r.date}</div>
+        {delivered.map((o) => (
+          <div className="list-card" key={o.id}>
+            <strong>{o.clientName || "Cliente eliminado"}</strong>
+            <div className="muted">{o.date}</div>
 
-            <p style={{ fontSize: 18, marginTop: 5 }}>
-              Fardos: {r.fardos} × L{r.price_fardo}  
-              <br />
-              Botellones llenos: {r.entregados_llenos} × L{r.price_botellon}
-            </p>
+            <div style={{ marginTop: 5 }}>
+              <div className="muted">
+                Fardos: {o.fardos} × L{o.price_fardo || 0}
+              </div>
+              <div className="muted">
+                Entregados (llenos): {o.entregados_llenos} × L
+                {o.price_botellon || 0}
+              </div>
+              {o.botellones_solicitados > 0 && (
+                <div className="muted">
+                  Botellones nuevos: {o.botellones_solicitados} × L
+                  {o.price_botellon_nuevo || 0}
+                </div>
+              )}
+            </div>
 
-            <p style={{ marginTop: 5, fontWeight: "bold" }}>
-              Total: L {r.total}
-            </p>
+            <div
+              style={{
+                marginTop: 8,
+                fontSize: 18,
+                fontWeight: "bold",
+                color: "green",
+              }}
+            >
+              Total: L {calculateTotal(o)}
+            </div>
           </div>
         ))}
       </div>
